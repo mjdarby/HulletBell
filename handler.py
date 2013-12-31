@@ -7,6 +7,7 @@ from constants import *
 from game import Game
 
 # Helper functions
+# This one sucks and will be replaced I think
 def fadeToHandler(screen, speed, destinationHandler, game):
   if screen.get_alpha() > 0:
     screen.set_alpha(screen.get_alpha() - speed)
@@ -128,7 +129,6 @@ class TitleScreenHandler(Handler):
 
 
 class GameScreenHandler(Handler):
-
 # TODO factor out the inner classes
 
 # TODO: Write the UI

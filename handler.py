@@ -28,16 +28,26 @@ class Handler(object):
 
 class TitleScreenHandler(Handler):
 
-  class Button(drawable.Drawable):
-    def __init__(self, x, y, text, func):
-      super(TitleScreenHandler.Button, self).__init__(x, y)
+  class TitleScreenElement(drawable.Drawable):
+    def __init__(self, x, y, text):
+      super(TitleScreenHandler.TitleScreenElement, self).__init__(x, y)
       self.text = text
-      self.selected = False
-      self.func = func
-      # To be replaced by an Animation?
+      # To be replaced by Animation
       font = pygame.font.Font(None, 24)
       self.renderText = font.render(text, 1, (255,255,255))
       self.textPos = self.renderText.get_rect(centerx=x, centery=y)
+
+    def setFontSize(self, size):
+      font = pygame.font.Font(None, size)
+      self.renderText = font.render(self.text, 1, (255,255,255))
+      self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+
+  class Button(TitleScreenElement):
+    def __init__(self, x, y, text, func):
+      super(TitleScreenHandler.Button, self).__init__(x, y, text)
+      self.text = text
+      self.selected = False
+      self.func = func
 
     def _draw(self): # TODO: Do we need this?
       pass
@@ -54,13 +64,9 @@ class TitleScreenHandler(Handler):
     def toggleSelect(self):
       self.selected = not self.selected
       if (self.selected):
-        font = pygame.font.Font(None, 28)
-        self.renderText = font.render(self.text, 1, (255,255,255))
-        self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+        self.setFontSize(28)
       else:
-        font = pygame.font.Font(None, 24)
-        self.renderText = font.render(self.text, 1, (255,255,255))
-        self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+        self.setFontSize(24)
 
 
   def __init__(self, game):
@@ -77,6 +83,9 @@ class TitleScreenHandler(Handler):
     self.background = pygame.Surface(self.game.screen.get_size())
     self.background = self.background.convert()
     self.background.fill((50, 50, 50))
+
+    self.title = TitleScreenHandler.TitleScreenElement(self.game.xRes // 2, 150, "The Hullet Bells")
+    self.title.setFontSize(42)
 
     self.buttons = [TitleScreenHandler.Button(self.game.xRes // 2, 300, "Start Game", self._startGame),
                     TitleScreenHandler.Button(self.game.xRes // 2, 400, "Quit", self._inputQuit)]
@@ -106,6 +115,9 @@ class TitleScreenHandler(Handler):
   def _runSelection(self):
     self.buttons[self.selected].run()
 
+  def _drawTitle(self):
+    self.game.screen.blit(self.title.renderText, self.title.textPos)
+
   def _drawText(self):
     for button in self.buttons:
       self.game.screen.blit(button.renderText, button.textPos)
@@ -113,6 +125,7 @@ class TitleScreenHandler(Handler):
   def _draw(self):
     self.game.screen.blit(self.background, (0,0))
     self._drawText()
+    self._drawTitle()
 
   def _logic(self):
     for button in self.buttons:

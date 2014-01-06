@@ -17,6 +17,7 @@ class Animation(object):
     self.currentFrame = 0
     self.totalFrames = 50
     self.looping = False
+    self.loopFrame = 0
 
     # Size of one frame
     self.width = 50
@@ -26,6 +27,6 @@ class Animation(object):
     self.currentFrame += 1
     if self.totalFrames < self.currentFrame:
       if self.looping:
-        self.currentFrame = 0
+        self.currentFrame = self.loopFrame
       else: # Undo frame change
         self.currentFrame -= 1

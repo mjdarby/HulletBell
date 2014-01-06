@@ -1,5 +1,5 @@
 import pygame, math
-import inputHandler, drawable, entity
+import inputHandler, drawable, entity, scripting
 
 from threading import Thread
 from constants import *
@@ -32,7 +32,6 @@ class TitleScreenHandler(Handler):
     def __init__(self, x, y, text):
       super(TitleScreenHandler.TitleScreenElement, self).__init__(x, y)
       self.text = text
-      # To be replaced by Animation
       font = pygame.font.Font(None, 24)
       self.renderText = font.render(text, 1, (255,255,255))
       self.textPos = self.renderText.get_rect(centerx=x, centery=y)
@@ -161,20 +160,24 @@ class GameScreenHandler(Handler):
   class Player(entity.Entity):
     def __init__(self):
       super(GameScreenHandler.Player, self).__init__()
+      self.x = 0
+      self.y = 0
       self.hitbox = entity.Hitbox(0, 0, 20, 20)
       self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
       self.image.fill((255,255,255))
 
     def _updateMovement(self):
       # Move by X
-      self.hitbox.x += self.xvel
+      self.x += self.xvel
+      self.hitbox.x = math.floor(self.x)
       # Move by Y
-      self.hitbox.y += self.yvel
+      self.y += self.yvel
+      self.hitbox.y = math.floor(self.y)
 
       if not self.bounds.contains(self.hitbox):
         # The hitbox has left the area! Put it back!
         self.hitbox.clamp_ip(self.bounds)
-        pass
+        (self.x, self.y) = (self.hitbox.x, self.hitbox.y)
 
       # Reset velocity
       self.xvel = 0
@@ -183,7 +186,9 @@ class GameScreenHandler(Handler):
   class Enemy(entity.Entity):
     def __init__(self):
       super(GameScreenHandler.Enemy, self).__init__()
-      self.hitbox = entity.Hitbox(60, 60, 20, 20)
+      self.x = 60
+      self.y = 60
+      self.hitbox = entity.Hitbox(self.x, self.y, 20, 20)
       self.angle = 0
       self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
       self.image.fill((0,255,0))
@@ -191,10 +196,19 @@ class GameScreenHandler(Handler):
   class Bullet(entity.Entity):
     def __init__(self):
       super(GameScreenHandler.Bullet, self).__init__()
-      self.hitbox = entity.Hitbox(60, 60, 5, 5)
-      self.angle = math.radians(315)
+      self.x = 300
+      self.y = 300
+      self.hitbox = entity.Hitbox(self.x, self.y, 5, 5)
+      self.angle = math.radians(1)
+      self.speed = 2
       self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
       self.image.fill((0,0,255))
+
+      # TODO REMOVE: Test code for scripting!
+      for i in range(360):
+        if i % 2 == 0:
+          self.scripter.addScript(self.scripter.setDirection(math.radians(i)))
+      self.scripter.setLooping(True)
 
   def __init__(self, game):
     super(GameScreenHandler, self).__init__(game)
@@ -205,10 +219,6 @@ class GameScreenHandler(Handler):
 
 #   Order matters for focus + movement, should fix this
     self.inputHandler.addPerFrameCallback(self._focus, pygame.K_LSHIFT)
-#    self.inputHandler.addEventCallback(self._focus,   pygame.K_LSHIFT, pygame.KEYDOWN)
-#    self.inputHandler.addEventCallback(self._unFocus, pygame.K_LSHIFT, pygame.KEYUP)
-
-
     self.inputHandler.addPerFrameCallback(self._moveRight, pygame.K_RIGHT)
     self.inputHandler.addPerFrameCallback(self._moveLeft, pygame.K_LEFT)
     self.inputHandler.addPerFrameCallback(self._moveUp, pygame.K_UP)

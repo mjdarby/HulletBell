@@ -1,5 +1,5 @@
 import pygame, math
-import drawable
+import drawable, scripting
 from constants import *
 
 class Hitbox(pygame.Rect):
@@ -24,8 +24,10 @@ class Entity(drawable.Drawable):
     self.angle = math.radians(315)
     self.speed = 2
     self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
+    self.scripter = scripting.Scripter(self)
 
   def update(self):
+    self._runScript()
     self._updateMovement()
 
   def isCollide(self, other):
@@ -34,12 +36,18 @@ class Entity(drawable.Drawable):
   def collide(self, other):
     print "Collided!"
 
+  def _runScript(self):
+    self.scripter.execute()
+
   def _updateMovement(self):
     # Update velocities according to angle and speed
     self.xvel = math.cos(self.angle) * self.speed
     self.yvel = -math.sin(self.angle) * self.speed
 
+    self.x += self.xvel
+    self.y += self.yvel
+
     # Move by X
-    self.hitbox.x += self.xvel
+    self.hitbox.x = math.floor(self.x)
     # Move by Y
-    self.hitbox.y += self.yvel
+    self.hitbox.y = math.floor(self.y)

@@ -15,7 +15,7 @@ class Bounds(pygame.Rect):
 
 class Entity(drawable.Drawable):
   """Base class for all entities that interact with each other via collisions"""
-  def __init__(self):
+  def __init__(self, handler):
     super(Entity, self).__init__(60, 60)
     self.hitbox = None # TODO this should be a hitbox
     self.collidable = True
@@ -24,17 +24,25 @@ class Entity(drawable.Drawable):
     self.angle = math.radians(315)
     self.speed = 2
     self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
-    self.scripter = scripting.Scripter(self)
+    self.handler = handler
+    self.scripter = scripting.EntityScripter(self)
 
   def update(self):
     self._runScript()
     self._updateMovement()
+    self._special()
 
   def isCollide(self, other):
     return self.collidable and other.hitbox.colliderect(self.hitbox)
 
   def collide(self, other):
     print "Collided!"
+
+  def setScript(self, script):
+    self.scripter = script
+
+  def _special(self):
+    pass
 
   def _runScript(self):
     self.scripter.execute()

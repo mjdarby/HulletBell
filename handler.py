@@ -158,8 +158,8 @@ class GameScreenHandler(Handler):
 #       and only use pygame.Sprite for drawing groups, or if we'll even
 #       roll our own drawing loops.
   class Player(entity.Entity):
-    def __init__(self):
-      super(GameScreenHandler.Player, self).__init__()
+    def __init__(self, handler):
+      super(GameScreenHandler.Player, self).__init__(handler)
       self.x = 0
       self.y = 0
       self.hitbox = entity.Hitbox(0, 0, 20, 20)
@@ -183,9 +183,12 @@ class GameScreenHandler(Handler):
       self.xvel = 0
       self.yvel = 0
 
+    def collide(self, other):
+      pass
+
   class Enemy(entity.Entity):
-    def __init__(self):
-      super(GameScreenHandler.Enemy, self).__init__()
+    def __init__(self, handler):
+      super(GameScreenHandler.Enemy, self).__init__(handler)
       self.x = 60
       self.y = 60
       self.hitbox = entity.Hitbox(self.x, self.y, 20, 20)
@@ -193,9 +196,12 @@ class GameScreenHandler(Handler):
       self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
       self.image.fill((0,255,0))
 
+    def collide(self, other):
+      print "Enemy collide!"
+
   class Bullet(entity.Entity):
-    def __init__(self):
-      super(GameScreenHandler.Bullet, self).__init__()
+    def __init__(self, handler):
+      super(GameScreenHandler.Bullet, self).__init__(handler)
       self.x = 300
       self.y = 300
       self.hitbox = entity.Hitbox(self.x, self.y, 5, 5)
@@ -204,11 +210,8 @@ class GameScreenHandler(Handler):
       self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
       self.image.fill((0,0,255))
 
-      # TODO REMOVE: Test code for scripting!
-      for i in range(360):
-        if i % 2 == 0:
-          self.scripter.addScript(self.scripter.setDirection(math.radians(i)))
-      self.scripter.setLooping(True)
+    def collide(self, other):
+      print "Bullet collide!"
 
   def __init__(self, game):
     super(GameScreenHandler, self).__init__(game)
@@ -230,9 +233,13 @@ class GameScreenHandler(Handler):
     self.gameBackground = self.gameBackground.convert()
     self.gameBackground.fill((50, 50, 50))
 
-    self.player = GameScreenHandler.Player()
-    self.enemy = GameScreenHandler.Enemy()
-    self.bullet = GameScreenHandler.Bullet()
+    self.levelScripter = scripting.Scripter(self)
+    self.levelScripter.setHandler(self)
+    self.levelScripter.addScript(self.levelScripter.createEnemy(None, None))
+
+    self.player = GameScreenHandler.Player(self)
+    self.enemies = []
+    self.bullets = []
 
     self.focused = False
 
@@ -248,32 +255,40 @@ class GameScreenHandler(Handler):
     self.game.screen.blit(self.ui.background, (0,0))
     self.game.screen.blit(self.gameBackground, (GAMEOFFSET,GAMEOFFSET))
     self.game.screen.blit(self.player.image, (self.player.hitbox.x, self.player.hitbox.y))
-    self.game.screen.blit(self.enemy.image, (self.enemy.hitbox.x, self.enemy.hitbox.y))
-    self.game.screen.blit(self.bullet.image, (self.bullet.hitbox.x, self.bullet.hitbox.y))
+
+    for enemy in self.enemies:
+      self.game.screen.blit(enemy.image, (enemy.hitbox.x, enemy.hitbox.y))
+    for bullet in self.bullets:
+      self.game.screen.blit(bullet.image, (bullet.hitbox.x, bullet.hitbox.y))
+
     self._drawText()
 
   def _logic(self):
     # Collisions, individual entity updates, then resets
     self._checkCollisions()
     self.player.update()
-    self.enemy.update()
-    self.bullet.update()
+    for enemy in self.enemies:
+      enemy.update()
+    for bullet in self.bullets:
+      bullet.update()
 
   def _reset(self):
     self.focused = False
 
   def _checkCollisions(self):
     # Check player + enemy collisions
-    # TODO: For each enemy..
-    if self.enemy.isCollide(self.player):
-      self.enemy.collide(self.player)
-      self.player.collide(self.enemy)
+    for enemy in self.enemies:
+      if enemy.isCollide(self.player):
+        enemy.collide(self.player)
+        self.player.collide(enemy)
+
     # Check player + bullet collisions
-    if self.bullet.isCollide(self.player):
-      self.bullet.collide(self.player)
-      self.player.collide(self.bullet)
+    for bullet in self.bullets:
+      if bullet.isCollide(self.player):
+        bullet.collide(self.player)
+        self.player.collide(bullet)
+
     # Check bullet + enemy collisions
-    pass
 
   # Input stuff
   def _handleInput(self):
@@ -315,9 +330,25 @@ class GameScreenHandler(Handler):
   def _unFocus(self):
     self.focused = False
 
+  # Script stuff
+
+  def _runScript(self):
+    self.levelScripter.execute()
+
+  def createEnemy(self):
+    enemy = GameScreenHandler.Enemy(self)
+    self.enemies.append(enemy)
+    return enemy
+
+  def createBullet(self):
+    bullet = GameScreenHandler.Bullet(self)
+    self.bullets.append(bullet)
+    return bullet
+
   # Updates
   def update(self):
     self._draw()
+    self._runScript()
     self._handleInput()
     self._logic()
     self._reset()

@@ -41,6 +41,14 @@ class Entity(drawable.Drawable):
   def setScript(self, script):
     self.scripter = script
 
+  def setX(self, x):
+    self.x = x
+    self.hitbox.x = x
+
+  def setY(self, y):
+    self.y = y
+    self.hitbox.y = y
+
   def _special(self):
     pass
 

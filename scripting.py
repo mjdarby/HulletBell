@@ -75,8 +75,34 @@ class Shoot(Script):
     bullet = self.handler.createBullet()
     bullet.angle = self.angle
     bullet.speed = self.speed
-    bullet.x = self.entity.x # TODO: Should be an offset from the center
-    bullet.y = self.entity.y # TODO: Should be an offset from the center
+    bullet.hitbox.centerx = self.entity.hitbox.centerx # TODO: Should be an offset from the center
+    bullet.hitbox.centery = self.entity.hitbox.centery # TODO: Should be an offset from the center
+    bullet.x = bullet.hitbox.x
+    bullet.y = bullet.hitbox.y
+
+class ShootAtPlayer(Script):
+  def __init__(self, entity, angleOffset, speed):
+    super(ShootAtPlayer, self).__init__(entity)
+    self.handler = entity.handler
+    self.angleOffset = angleOffset
+    self.speed = speed
+
+  def execute(self):
+    bullet = self.handler.createBullet()
+    # Calculate the angle between the entity and player, if it exists
+    # If it doesn't, aim down the screen
+    player = self.handler.player
+    if (player):
+      deltaX = player.hitbox.centerx - self.entity.hitbox.centerx
+      deltaY = self.entity.hitbox.centery - player.hitbox.centery
+      bullet.angle = math.atan2(deltaY, deltaX) + self.angleOffset
+    else:
+      bullet.angle = math.PI / 3 + self.angleOffset
+    bullet.speed = self.speed
+    bullet.hitbox.centerx = self.entity.hitbox.centerx # TODO: Should be an offset from the center
+    bullet.hitbox.centery = self.entity.hitbox.centery # TODO: Should be an offset from the center
+    bullet.x = bullet.hitbox.x
+    bullet.y = bullet.hitbox.y
 
 # Level stuff
 class LevelScript(object):
@@ -99,16 +125,15 @@ class CreateEnemy(LevelScript):
     # Give him script enemyScripter
     enemy = self.handler.createEnemy()
     enemy.setY(200)
+    enemy.setX(300)
+    enemy.speed = 0
 
     # TEST SCRIPT
     scripter = EntityScripter(enemy)
     scripter.setLooping(True)
     # TODO REMOVE: Test code for scripting!
-    for i in range(360):
-      if i % 2 == 0:
-        scripter.addScript(scripter.setDirection(math.radians(i)))
-    scripter.addScript(scripter.shoot(enemy.angle, 2))
-    scripter.addWait(60)
+    scripter.addScript(scripter.shootAtPlayer(0, 5))
+    scripter.addWait(5)
     enemy.scripter = scripter
 
 class Scripter(object):
@@ -198,3 +223,6 @@ class EntityScripter(object):
 
   def shoot(self, angle, speed):
     return Shoot(self.entity, angle, speed)
+
+  def shootAtPlayer(self, offsetAngle, speed):
+    return ShootAtPlayer(self.entity, offsetAngle, speed)

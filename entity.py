@@ -18,12 +18,17 @@ class Entity(drawable.Drawable):
   def __init__(self, handler):
     super(Entity, self).__init__(60, 60)
     self.hitbox = None # TODO this should be a hitbox
-    self.collidable = True
+    self.collidable = True # Entity can call 'collide' on others
+    self.dead = False # Remove from screen on next update?
     self.xvel = 0
     self.yvel = 0
     self.angle = math.radians(315)
     self.speed = 2
+
+    # Bounds stuff
+    self.boundsChecked = True # Call die() if out of bounds
     self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
+    self.bounds.inflate_ip(50, 50) # Default bounds for non-players
     self.handler = handler
     self.scripter = scripting.EntityScripter(self)
 
@@ -31,6 +36,10 @@ class Entity(drawable.Drawable):
     self._runScript()
     self._updateMovement()
     self._special()
+
+    # Kill on OOB
+    if self.boundsChecked and not self.bounds.contains(self.hitbox):
+      self.die()
 
   def isCollide(self, other):
     return self.collidable and other.hitbox.colliderect(self.hitbox)
@@ -48,6 +57,12 @@ class Entity(drawable.Drawable):
   def setY(self, y):
     self.y = y
     self.hitbox.y = y
+
+  def die(self):
+    # Death logic, usually playing an animation and removing self from screen
+    # TODO: Animation!
+    self.collidable = False
+    self.dead = True
 
   def _special(self):
     pass

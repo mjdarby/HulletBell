@@ -133,7 +133,6 @@ class CreateEnemy(LevelScript):
     scripter.setLooping(True)
     # TODO REMOVE: Test code for scripting!
     scripter.addScript(scripter.shootAtPlayer(0, 5))
-    scripter.addWait(5)
     enemy.scripter = scripter
 
 class Scripter(object):

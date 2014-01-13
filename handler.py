@@ -166,6 +166,9 @@ class GameScreenHandler(Handler):
       self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
       self.image.fill((255,255,255))
 
+      # Players are more strictly bounded than other entities
+      self.bounds = entity.Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
+
     def _updateMovement(self):
       # Move by X
       self.x += self.xvel
@@ -271,6 +274,10 @@ class GameScreenHandler(Handler):
       enemy.update()
     for bullet in self.bullets:
       bullet.update()
+
+    # Clean up the dead
+    self.enemies = [enemy for enemy in self.enemies if not enemy.dead]
+    self.bullets = [bullets for bullets in self.bullets if not bullets.dead]
 
   def _reset(self):
     self.focused = False

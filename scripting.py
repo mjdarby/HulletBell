@@ -2,105 +2,104 @@ import math
 
 class Script(object):
   """Script item superclass"""
-  def __init__(self, entity):
+  def __init__(self):
     super(Script, self).__init__()
-    self.entity = entity
 
-  def execute(self):
+  def execute(self, entity):
     pass
 
 class SetX(Script):
   def __init__(self, entity, x):
-    super(SetX, self).__init__(entity)
+    super(SetX, self).__init__()
     self.x = x
 
-  def execute(self):
-    self.entity.x = self.x
+  def execute(self, entity):
+    entity.x = self.x
 
 class SetY(Script):
-  def __init__(self, entity, y):
-    super(SetY, self).__init__(entity)
+  def __init__(self, y):
+    super(SetY, self).__init__()
     self.y = y
 
-  def execute(self):
-    self.entity.y = self.y
+  def execute(self, entity):
+    entity.y = self.y
 
 class Wait(Script):
-  def __init__(self, entity):
-    super(Wait, self).__init__(entity)
+  def __init__(self):
+    super(Wait, self).__init__()
 
-  def execute(self):
+  def execute(self, entity):
     pass
 
 class SetXVel(Script):
-  def __init__(self, entity, xvel):
-    super(SetXVel, self).__init__(entity)
+  def __init__(self, xvel):
+    super(SetXVel, self).__init__()
     self.xvel = xvel
 
-  def execute(self):
-    self.entity.xvel = self.xvel
+  def execute(self, entity):
+    entity.xvel = self.xvel
 
 class SetYVel(Script):
-  def __init__(self, entity, yvel):
-    super(SetYVel, self).__init__(entity)
+  def __init__(self, yvel):
+    super(SetYVel, self).__init__()
     self.yvel = yvel
 
-  def execute(self):
-    self.entity.yvel = self.yvel
+  def execute(self, entity):
+    entity.yvel = self.yvel
 
 class SetDirection(Script):
-  def __init__(self, entity, angle):
-    super(SetDirection, self).__init__(entity)
+  def __init__(self, angle):
+    super(SetDirection, self).__init__()
     self.angle = angle
 
-  def execute(self):
-    self.entity.angle = self.angle
+  def execute(self, entity):
+    entity.angle = self.angle
 
 class SetSpeed(Script):
-  def __init__(self, entity, speed):
-    super(SetSpeed, self).__init__(entity)
+  def __init__(self, speed):
+    super(SetSpeed, self).__init__()
     self.speed = speed
 
-  def execute(self):
-    self.entity.speed = self.speed
+  def execute(self, entity):
+    entity.speed = self.speed
 
 class Shoot(Script):
-  def __init__(self, entity, angle, speed):
-    super(Shoot, self).__init__(entity)
-    self.handler = entity.handler
+  def __init__(self, angle, speed):
+    super(Shoot, self).__init__()
     self.angle = angle
     self.speed = speed
 
-  def execute(self):
-    bullet = self.handler.createBullet()
+  def execute(self, entity):
+    handler = entity.handler
+    bullet = handler.createBullet()
     bullet.angle = self.angle
     bullet.speed = self.speed
-    bullet.hitbox.centerx = self.entity.hitbox.centerx # TODO: Should be an offset from the center
-    bullet.hitbox.centery = self.entity.hitbox.centery # TODO: Should be an offset from the center
+    bullet.hitbox.centerx = entity.hitbox.centerx # TODO: Should be an offset from the center
+    bullet.hitbox.centery = entity.hitbox.centery # TODO: Should be an offset from the center
     bullet.x = bullet.hitbox.x
     bullet.y = bullet.hitbox.y
 
 class ShootAtPlayer(Script):
-  def __init__(self, entity, angleOffset, speed):
-    super(ShootAtPlayer, self).__init__(entity)
-    self.handler = entity.handler
+  def __init__(self, angleOffset, speed):
+    super(ShootAtPlayer, self).__init__()
     self.angleOffset = angleOffset
     self.speed = speed
 
-  def execute(self):
-    bullet = self.handler.createBullet()
+  def execute(self, entity):
+    handler = entity.handler
+    bullet = handler.createBullet()
     # Calculate the angle between the entity and player, if it exists
     # If it doesn't, aim down the screen
-    player = self.handler.player
+    player = handler.player
     if (player):
-      deltaX = player.hitbox.centerx - self.entity.hitbox.centerx
-      deltaY = self.entity.hitbox.centery - player.hitbox.centery
+      deltaX = player.hitbox.centerx - entity.hitbox.centerx
+      deltaY = entity.hitbox.centery - player.hitbox.centery
       bullet.angle = math.atan2(deltaY, deltaX) + self.angleOffset
     else:
       bullet.angle = math.PI / 3 + self.angleOffset
     bullet.speed = self.speed
-    bullet.hitbox.centerx = self.entity.hitbox.centerx # TODO: Should be an offset from the center
-    bullet.hitbox.centery = self.entity.hitbox.centery # TODO: Should be an offset from the center
+    bullet.hitbox.centerx = entity.hitbox.centerx # TODO: Should be an offset from the center
+    bullet.hitbox.centery = entity.hitbox.centery # TODO: Should be an offset from the center
     bullet.x = bullet.hitbox.x
     bullet.y = bullet.hitbox.y
 
@@ -114,11 +113,11 @@ class LevelScript(object):
     pass
 
 class CreateEnemy(LevelScript):
-  def __init__(self, handler): # TODO: Take position and script
+  def __init__(self, handler, enemyScripter): # TODO: Take position and script
     super(CreateEnemy, self).__init__(handler)
     # TODO: Populate these
     self.enemyType = None
-    self.enemyScripter = None
+    self.enemyScripter = enemyScripter
 
   def execute(self):
     # Create an enemy of type enemyType
@@ -127,13 +126,12 @@ class CreateEnemy(LevelScript):
     enemy.setY(200)
     enemy.setX(300)
     enemy.speed = 0
-
-    # TEST SCRIPT
-    scripter = EntityScripter(enemy)
-    scripter.setLooping(True)
-    # TODO REMOVE: Test code for scripting!
-    scripter.addScript(scripter.shootAtPlayer(0, 5))
-    enemy.scripter = scripter
+    if self.enemyScripter is not None:
+      enemy.scripter = self.enemyScripter
+    else:
+      # Debug
+      enemy.scripter.addScript(enemy.scripter.shootAtPlayer(0, 10))
+      enemy.scripter.setLooping(True)
 
 class Scripter(object):
   """Builds scripts for level"""
@@ -154,10 +152,6 @@ class Scripter(object):
   def setHandler(self, handler):
     self.handler = handler
 
-  def addScript(self, *scripts):
-    """Add scripts to be parsed on frame (len(handler.scripts))"""
-    self.script.append(scripts)
-
   def execute(self):
     if self.scriptIndex < len(self.script):
       for script in self.script[self.scriptIndex]:
@@ -166,19 +160,31 @@ class Scripter(object):
     elif self.looping:
       self.scriptIndex = 0
 
+  # Script creation functions
+  def addWait(self, frames):
+    for _ in range(frames):
+      self.script.append((Wait(self),))
+
+  def addScript(self, *scripts):
+    """Add scripts to be parsed on frame (len(handler.scripts))"""
+    self.script.append(scripts)
+
   def createEnemy(self, enemyType, enemyScripter):
-    return CreateEnemy(self.handler)
+    return CreateEnemy(self.handler, enemyScripter)
 
 
 class EntityScripter(object):
   """Builds and manages script objects for Entities"""
-  def __init__(self, entity):
+  def __init__(self):
     super(EntityScripter, self).__init__()
-    self.entity = entity
+    self.entity = None
     self.looping = False # Does the script loop?
     self.loopIndex = 0 # Where to loop from
     self.script = []
     self.scriptIndex = 0
+
+  def setEntity(self, entity):
+    self.entity = entity
 
   def setLooping(self, looping):
     self.looping = looping
@@ -189,7 +195,7 @@ class EntityScripter(object):
   def execute(self):
     if self.scriptIndex < len(self.script):
       for script in self.script[self.scriptIndex]:
-        script.execute()
+        script.execute(self.entity)
       self.scriptIndex += 1
     elif self.looping:
       self.scriptIndex = 0
@@ -200,28 +206,28 @@ class EntityScripter(object):
 
   def addWait(self, frames):
     for _ in range(frames):
-      self.script.append((Wait(self.entity),))
+      self.script.append((Wait(),))
 
   def setX(self, x):
-    return SetX(self.entity, x)
+    return SetX(x)
 
   def setY(self, y):
-    return SetY(self.entity, y)
+    return SetY(y)
 
   def setXVel(self, xvel):
-    return SetXVel(self.entity, xvel)
+    return SetXVel(xvel)
 
   def setYVel(self, yvel):
-    return SetYVel(self.entity, yvel)
+    return SetYVel(yvel)
 
   def setDirection(self, angle):
-    return SetDirection(self.entity, angle)
+    return SetDirection(angle)
 
   def setSpeed(self, speed):
-    return SetSpeed(self.entity, speed)
+    return SetSpeed(speed)
 
   def shoot(self, angle, speed):
-    return Shoot(self.entity, angle, speed)
+    return Shoot(angle, speed)
 
   def shootAtPlayer(self, offsetAngle, speed):
-    return ShootAtPlayer(self.entity, offsetAngle, speed)
+    return ShootAtPlayer(offsetAngle, speed)

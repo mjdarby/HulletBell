@@ -30,7 +30,8 @@ class Entity(drawable.Drawable):
     self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
     self.bounds.inflate_ip(50, 50) # Default bounds for non-players
     self.handler = handler
-    self.scripter = scripting.EntityScripter(self)
+    self.scripter = scripting.EntityScripter()
+    self.scripter.setEntity(self)
 
   def update(self):
     self._runScript()

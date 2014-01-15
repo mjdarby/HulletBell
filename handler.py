@@ -1,5 +1,5 @@
-import pygame, math
-import inputHandler, drawable, entity, scripting
+import pygame, math, time, thread
+import inputHandler, drawable, entity, scripting, levels
 
 from threading import Thread
 from constants import *
@@ -12,7 +12,6 @@ def fadeToHandler(screen, speed, destinationHandler, game):
   if screen.get_alpha() > 0:
     screen.set_alpha(screen.get_alpha() - speed)
   else:
-    game.crossHandlerKeys = list(pygame.key.get_pressed())
     game.handler = destinationHandler
 
 class Handler(object):
@@ -26,22 +25,65 @@ class Handler(object):
     print("Default handler")
     return True
 
+def dummyCallback(handler):
+  time.sleep(5)
+
+# Seriously this should be moved somewhere nicer
+class TextElement(drawable.Drawable):
+  def __init__(self, x, y, text):
+    super(TextElement, self).__init__(x, y)
+    self.text = text
+    font = pygame.font.Font(None, 24)
+    self.renderText = font.render(text, 1, (255,255,255))
+    self.textPos = self.renderText.get_rect(centerx=x, centery=y)
+
+  def setFontSize(self, size):
+    font = pygame.font.Font(None, size)
+    self.renderText = font.render(self.text, 1, (255,255,255))
+    self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+
+
+class LoadingScreenHandler(Handler):
+  def __init__(self, game, nextHandler, assetsToLoad):
+    super(LoadingScreenHandler, self).__init__(game)
+    # Loading stuff
+    self.nextHandler = nextHandler
+    self.assetsToLoad = assetsToLoad
+    self.thread = Thread(target=dummyCallback, args=(self,))
+    # Start loading on initialisation, maybe this will get moved
+    self.thread.start()
+
+    # Display stuff!
+    self.background = pygame.Surface(self.game.screen.get_size())
+    self.background = self.background.convert()
+    self.background.fill((50, 50, 50))
+
+    self.title = TextElement(self.game.xRes // 2, 150, "Loading")
+    self.title.setFontSize(42)
+
+  def _draw(self):
+    # Print background and loading text
+    self.game.screen.blit(self.background, (0,0))
+    self.game.screen.blit(self.title.renderText, self.title.textPos)
+
+  def _handleInput(self):
+    # Pump the event queue so we don't get any nasty surprises after loading.
+    pygame.event.clear()
+
+  def _logic(self):
+    # Loading finished? Transition to next handler.
+    if not self.thread.isAlive():
+      fadeToHandler(self.background, 3, self.nextHandler, self.game)
+
+  def update(self):
+    self._draw()
+    self._logic()
+    self._handleInput()
+    return True
+
 class TitleScreenHandler(Handler):
 
-  class TitleScreenElement(drawable.Drawable):
-    def __init__(self, x, y, text):
-      super(TitleScreenHandler.TitleScreenElement, self).__init__(x, y)
-      self.text = text
-      font = pygame.font.Font(None, 24)
-      self.renderText = font.render(text, 1, (255,255,255))
-      self.textPos = self.renderText.get_rect(centerx=x, centery=y)
-
-    def setFontSize(self, size):
-      font = pygame.font.Font(None, size)
-      self.renderText = font.render(self.text, 1, (255,255,255))
-      self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
-
-  class Button(TitleScreenElement):
+  class Button(TextElement):
     def __init__(self, x, y, text, func):
       super(TitleScreenHandler.Button, self).__init__(x, y, text)
       self.text = text
@@ -83,7 +125,7 @@ class TitleScreenHandler(Handler):
     self.background = self.background.convert()
     self.background.fill((50, 50, 50))
 
-    self.title = TitleScreenHandler.TitleScreenElement(self.game.xRes // 2, 150, "The Hullet Bells")
+    self.title = TextElement(self.game.xRes // 2, 150, "The Hullet Bells")
     self.title.setFontSize(42)
 
     self.buttons = [TitleScreenHandler.Button(self.game.xRes // 2, 300, "Start Game", self._startGame),
@@ -95,7 +137,10 @@ class TitleScreenHandler(Handler):
     self.running = False
 
   def _startGame(self):
-    fadeToHandler(self.game.screen, 0.1, GameScreenHandler(self.game), self.game)
+    # Start with level one!
+    gameScreenHandler = GameScreenHandler(self.game, self.game.levels[0])
+    loadingScreenHandler = LoadingScreenHandler(self.game, gameScreenHandler, None)
+    fadeToHandler(self.game.screen, 0.1, loadingScreenHandler, self.game)
 
   def _selectionUp(self):
     self.buttons[self.selected].toggleSelect()
@@ -216,7 +261,7 @@ class GameScreenHandler(Handler):
     def collide(self, other):
       print "Bullet collide!"
 
-  def __init__(self, game):
+  def __init__(self, game, level):
     super(GameScreenHandler, self).__init__(game)
     self.inputHandler = inputHandler.InputHandler()
     self.inputHandler.addEventCallback(self._inputQuit, pygame.K_q, pygame.KEYDOWN)
@@ -236,11 +281,12 @@ class GameScreenHandler(Handler):
     self.gameBackground = self.gameBackground.convert()
     self.gameBackground.fill((50, 50, 50))
 
-    self.levelScripter = scripting.Scripter(self)
+    (self.levelScripter, _) = level()
     self.levelScripter.setHandler(self)
-    self.levelScripter.addScript(self.levelScripter.createEnemy(None, None))
 
     self.player = GameScreenHandler.Player(self)
+    self.player.setX(50)
+    self.player.setY(50)
     self.enemies = []
     self.bullets = []
 

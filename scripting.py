@@ -1,4 +1,4 @@
-import math
+import math, copy
 
 class Script(object):
   """Script item superclass"""
@@ -119,15 +119,18 @@ class CreateEnemy(LevelScript):
     self.enemyType = None
     self.enemyScripter = enemyScripter
 
-  def execute(self):
+  def execute(self, handler):
     # Create an enemy of type enemyType
     # Give him script enemyScripter
-    enemy = self.handler.createEnemy()
+    enemy = handler.createEnemy()
     enemy.setY(200)
     enemy.setX(300)
     enemy.speed = 0
     if self.enemyScripter is not None:
-      enemy.scripter = self.enemyScripter
+      # Copy in the passed script because it may be used by other entities
+      # Sharing a script = BAD!
+      enemy.scripter = copy.deepcopy(self.enemyScripter)
+      enemy.scripter.setEntity(enemy)
     else:
       # Debug
       enemy.scripter.addScript(enemy.scripter.shootAtPlayer(0, 10))
@@ -135,7 +138,7 @@ class CreateEnemy(LevelScript):
 
 class Scripter(object):
   """Builds scripts for level"""
-  def __init__(self, handler):
+  def __init__(self):
     super(Scripter, self).__init__()
     self.handler = None
     self.looping = False # Does the script loop?
@@ -155,7 +158,7 @@ class Scripter(object):
   def execute(self):
     if self.scriptIndex < len(self.script):
       for script in self.script[self.scriptIndex]:
-        script.execute()
+        script.execute(self.handler)
       self.scriptIndex += 1
     elif self.looping:
       self.scriptIndex = 0
@@ -163,7 +166,7 @@ class Scripter(object):
   # Script creation functions
   def addWait(self, frames):
     for _ in range(frames):
-      self.script.append((Wait(self),))
+      self.script.append((Wait(),))
 
   def addScript(self, *scripts):
     """Add scripts to be parsed on frame (len(handler.scripts))"""

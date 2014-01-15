@@ -1,6 +1,6 @@
 import pygame
 
-import handler
+import handler, levels
 
 from pygame.locals import *
 from constants import *
@@ -21,3 +21,7 @@ class Game:
     # PyGame variables..
     self.screen = None
     self.run = True
+
+    # Level stuff
+    self.currentLevel = 0 # Incremented on level completion
+    self.levels = [levels.level1]

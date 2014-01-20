@@ -21,6 +21,7 @@ class Game:
     # PyGame variables..
     self.screen = None
     self.run = True
+    self.clock = None
 
     # Level stuff
     self.currentLevel = 0 # Incremented on level completion

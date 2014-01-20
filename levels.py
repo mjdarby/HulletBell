@@ -28,8 +28,8 @@ def level1():
   assets = []
   bulletScripter = scripting.EntityScripter()
   bulletScripter.addScript(bulletScripter.setSpeed(1))
-  for i in range(60):
-    speed = float(1 + (i / 10))
+  for i in range(600):
+    speed = 1 + (20 * i / 100.0)
     bulletScripter.addScript(bulletScripter.setSpeed(speed))
   enemyScripter = scripting.EntityScripter()
   enemyScripter.addScript(enemyScripter.setSpeed(2))

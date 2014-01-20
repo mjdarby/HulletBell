@@ -37,6 +37,12 @@ class TextElement(drawable.Drawable):
     self.renderText = font.render(text, 1, (255,255,255))
     self.textPos = self.renderText.get_rect(centerx=x, centery=y)
 
+  def setText(self, text):
+    self.text = text
+    font = pygame.font.Font(None, 24)
+    self.renderText = font.render(text, 1, (255,255,255))
+    self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+
   def setFontSize(self, size):
     font = pygame.font.Font(None, size)
     self.renderText = font.render(self.text, 1, (255,255,255))
@@ -197,6 +203,17 @@ class GameScreenHandler(Handler):
       self.background = pygame.Surface(game.screen.get_size())
       self.background = self.background.convert()
       self.background.fill((0, 0, 0))
+      self.game = game
+
+      self.fpsDisplay = TextElement(game.xRes * 3 // 4, 150, "FPS: ")
+      self.fpsDisplay.setFontSize(24)
+
+    def update(self):
+      self.fpsDisplay.setText("FPS: " + str(self.game.clock.get_fps()))
+
+    def draw(self, screen):
+      screen.blit(self.background, (0,0))
+      screen.blit(self.fpsDisplay.renderText, self.fpsDisplay.textPos)
 
 # TODO: Finish the player stuff
 # TODO: Decide if we'll end up using pygame.Sprite as the base for drawable
@@ -302,7 +319,7 @@ class GameScreenHandler(Handler):
     pass
 
   def _draw(self):
-    self.game.screen.blit(self.ui.background, (0,0))
+    self.ui.draw(self.game.screen)
     self.game.screen.blit(self.gameBackground, (GAMEOFFSET,GAMEOFFSET))
     self.game.screen.blit(self.player.image, (self.player.hitbox.x, self.player.hitbox.y))
 
@@ -325,6 +342,9 @@ class GameScreenHandler(Handler):
     # Clean up the dead
     self.enemies = [enemy for enemy in self.enemies if not enemy.dead]
     self.bullets = [bullets for bullets in self.bullets if not bullets.dead]
+
+  def _updateUi(self):
+    self.ui.update()
 
   def _reset(self):
     self.focused = False
@@ -405,5 +425,6 @@ class GameScreenHandler(Handler):
     self._runScript()
     self._handleInput()
     self._logic()
+    self._updateUi()
     self._reset()
     return self.running

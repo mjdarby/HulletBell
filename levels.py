@@ -26,19 +26,26 @@ class Asset(object):
     
 def level1():
   assets = []
+  bulletScripter = scripting.EntityScripter()
+  bulletScripter.addScript(bulletScripter.setSpeed(1))
+  for i in range(60):
+    speed = float(1 + (i / 10))
+    bulletScripter.addScript(bulletScripter.setSpeed(speed))
   enemyScripter = scripting.EntityScripter()
   enemyScripter.addScript(enemyScripter.setSpeed(2))
-  for i in range(360):
+  #for i in range(0, 360, 0.1):
+  for i in [x * 1 for x in range(0, 7200)]:
     if i % 30 == 0:
       enemyScripter.addScript(enemyScripter.setDirection(math.radians(360 - i)),
-                              enemyScripter.shootAtPlayer(0, 2))
+                              enemyScripter.shootAtPlayer(0, 2, bulletScripter))
     else:
       enemyScripter.addScript(enemyScripter.setDirection(math.radians(360 - i)))
   enemyScripter.setLooping(True)
   
   scripter = scripting.Scripter()
-  scripter.addWait(120)
-  scripter.addScript(scripter.createEnemy(None, enemyScripter))
-  scripter.setLooping(True)
+  for _ in range(180):
+    scripter.addWait(2)
+    scripter.addScript(scripter.createEnemy(None, enemyScripter))
+  #scripter.setLooping(True)
 
   return (scripter, assets)

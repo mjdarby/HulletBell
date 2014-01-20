@@ -1,6 +1,6 @@
 import pygame
 
-import handler, levels
+import levels
 
 from pygame.locals import *
 from constants import *

@@ -140,7 +140,8 @@ class TitleScreenHandler(Handler):
     # Start with level one!
     gameScreenHandler = GameScreenHandler(self.game, self.game.levels[0])
     loadingScreenHandler = LoadingScreenHandler(self.game, gameScreenHandler, None)
-    fadeToHandler(self.game.screen, 0.1, loadingScreenHandler, self.game)
+    #fadeToHandler(self.game.screen, 0.1, loadingScreenHandler, self.game)
+    fadeToHandler(self.game.screen, 0.1, gameScreenHandler, self.game)
 
   def _selectionUp(self):
     self.buttons[self.selected].toggleSelect()

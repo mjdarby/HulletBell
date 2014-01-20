@@ -64,10 +64,11 @@ class SetSpeed(Script):
     entity.speed = self.speed
 
 class Shoot(Script):
-  def __init__(self, angle, speed):
+  def __init__(self, angle, speed, bulletScripter = None):
     super(Shoot, self).__init__()
     self.angle = angle
     self.speed = speed
+    self.bulletScripter = bulletScripter
 
   def execute(self, entity):
     handler = entity.handler
@@ -78,12 +79,18 @@ class Shoot(Script):
     bullet.hitbox.centery = entity.hitbox.centery # TODO: Should be an offset from the center
     bullet.x = bullet.hitbox.x
     bullet.y = bullet.hitbox.y
+    if self.bulletScripter is not None:
+      # Copy in the passed script because it may be used by other entities
+      # Sharing a script = BAD!
+      bullet.scripter = copy.copy(self.bulletScripter)
+      bullet.scripter.setEntity(bullet)
 
 class ShootAtPlayer(Script):
-  def __init__(self, angleOffset, speed):
+  def __init__(self, angleOffset, speed, bulletScripter = None):
     super(ShootAtPlayer, self).__init__()
     self.angleOffset = angleOffset
     self.speed = speed
+    self.bulletScripter = bulletScripter
 
   def execute(self, entity):
     handler = entity.handler
@@ -102,6 +109,9 @@ class ShootAtPlayer(Script):
     bullet.hitbox.centery = entity.hitbox.centery # TODO: Should be an offset from the center
     bullet.x = bullet.hitbox.x
     bullet.y = bullet.hitbox.y
+    if self.bulletScripter is not None:
+      bullet.scripter = copy.copy(self.bulletScripter)
+      bullet.scripter.setEntity(bullet)
 
 # Level stuff
 class LevelScript(object):
@@ -113,7 +123,7 @@ class LevelScript(object):
     pass
 
 class CreateEnemy(LevelScript):
-  def __init__(self, handler, enemyScripter): # TODO: Take position and script
+  def __init__(self, handler, enemyScripter = None): # TODO: Take position and script
     super(CreateEnemy, self).__init__(handler)
     # TODO: Populate these
     self.enemyType = None
@@ -129,12 +139,8 @@ class CreateEnemy(LevelScript):
     if self.enemyScripter is not None:
       # Copy in the passed script because it may be used by other entities
       # Sharing a script = BAD!
-      enemy.scripter = copy.deepcopy(self.enemyScripter)
+      enemy.scripter = copy.copy(self.enemyScripter)
       enemy.scripter.setEntity(enemy)
-    else:
-      # Debug
-      enemy.scripter.addScript(enemy.scripter.shootAtPlayer(0, 10))
-      enemy.scripter.setLooping(True)
 
 class Scripter(object):
   """Builds scripts for level"""
@@ -229,8 +235,8 @@ class EntityScripter(object):
   def setSpeed(self, speed):
     return SetSpeed(speed)
 
-  def shoot(self, angle, speed):
-    return Shoot(angle, speed)
+  def shoot(self, angle, speed, bulletScripter = None):
+    return Shoot(angle, speed, bulletScripter)
 
-  def shootAtPlayer(self, offsetAngle, speed):
-    return ShootAtPlayer(offsetAngle, speed)
+  def shootAtPlayer(self, offsetAngle, speed, bulletScripter = None):
+    return ShootAtPlayer(offsetAngle, speed, bulletScripter)

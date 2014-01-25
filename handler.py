@@ -30,23 +30,39 @@ def dummyCallback(handler):
 
 # Seriously this should be moved somewhere nicer
 class TextElement(drawable.Drawable):
+  class Alignments:
+    Left, Center = range(2)
+
   def __init__(self, x, y, text):
     super(TextElement, self).__init__(x, y)
     self.text = text
     font = pygame.font.Font(None, 24)
     self.renderText = font.render(text, 1, (255,255,255))
-    self.textPos = self.renderText.get_rect(centerx=x, centery=y)
+    self.textPos = self.renderText.get_rect(centerx=x, y=y)
+    self.fontSize = 24
+    self.alignment = TextElement.Alignments.Center
 
   def setText(self, text):
     self.text = text
-    font = pygame.font.Font(None, 24)
+    font = pygame.font.Font(None, self.fontSize)
     self.renderText = font.render(text, 1, (255,255,255))
-    self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+    if self.alignment == TextElement.Alignments.Left:
+      self.textPos = self.renderText.get_rect(x=self.x, y=self.y)
+    elif self.alignment == TextElement.Alignments.Center:
+      self.textPos = self.renderText.get_rect(centerx=self.x, y=self.y)
 
   def setFontSize(self, size):
-    font = pygame.font.Font(None, size)
-    self.renderText = font.render(self.text, 1, (255,255,255))
-    self.textPos = self.renderText.get_rect(centerx=self.x, centery=self.y)
+    self.fontSize = size
+    self.setText(self.text)
+
+  def setLeftAligned(self):
+    self.alignment = TextElement.Alignments.Left
+    self.setText(self.text)
+
+  def setCenterAligned(self):
+    self.alignment = TextElement.Alignments.Center
+    self.setText(self.text)
+
 
 
 class LoadingScreenHandler(Handler):
@@ -207,6 +223,7 @@ class GameScreenHandler(Handler):
 
       self.fpsDisplay = TextElement(game.xRes * 3 // 4, 150, "FPS: ")
       self.fpsDisplay.setFontSize(24)
+      self.fpsDisplay.setLeftAligned()
 
     def update(self):
       self.fpsDisplay.setText("FPS: " + str(self.game.clock.get_fps()))

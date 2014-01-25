@@ -7,8 +7,8 @@ from game import Game
 def main():
   # Initialise stuff: Pygame, the clock..
   pygame.init()
-  clock = pygame.time.Clock()
   game = Game()
+  game.clock = pygame.time.Clock()
 
   # Get the PyGame variables in to Game.
   game.screen = pygame.display.set_mode((game.xRes,game.yRes), DOUBLEBUF | HWSURFACE)
@@ -19,7 +19,7 @@ def main():
 
   while True:
     # Cap the frame rate.
-    clock.tick(60)
+    game.clock.tick(60)
 
     # Run the game handler.
     if not game.handler.update():
@@ -29,7 +29,6 @@ def main():
     pygame.display.flip()
 
   pygame.quit()
-
 
 import cProfile as profile
 if __name__ == "__main__":

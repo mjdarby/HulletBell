@@ -237,65 +237,6 @@ class GameScreenHandler(Handler):
 #       and use self.rect as the hitbox, or if we'll roll our own collision
 #       and only use pygame.Sprite for drawing groups, or if we'll even
 #       roll our own drawing loops.
-  class Player(entity.Entity):
-    def __init__(self, handler):
-      super(GameScreenHandler.Player, self).__init__(handler)
-      self.x = 0
-      self.y = 0
-      self.hitbox = entity.Hitbox(0, 0, 20, 20)
-      self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
-      self.image.fill((255,255,255))
-
-      # Players are more strictly bounded than other entities
-      self.bounds = entity.Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
-
-    def _updateMovement(self):
-      # Move by X
-      self.x += self.xvel
-      self.hitbox.x = math.floor(self.x)
-      # Move by Y
-      self.y += self.yvel
-      self.hitbox.y = math.floor(self.y)
-
-      if not self.bounds.contains(self.hitbox):
-        # The hitbox has left the area! Put it back!
-        self.hitbox.clamp_ip(self.bounds)
-        (self.x, self.y) = (self.hitbox.x, self.hitbox.y)
-
-      # Reset velocity
-      self.xvel = 0
-      self.yvel = 0
-
-    def collide(self, other):
-      pass
-
-  class Enemy(entity.Entity):
-    def __init__(self, handler):
-      super(GameScreenHandler.Enemy, self).__init__(handler)
-      self.x = 60
-      self.y = 60
-      self.hitbox = entity.Hitbox(self.x, self.y, 20, 20)
-      self.angle = 0
-      self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
-      self.image.fill((0,255,0))
-
-    def collide(self, other):
-      print "Enemy collide!"
-
-  class Bullet(entity.Entity):
-    def __init__(self, handler):
-      super(GameScreenHandler.Bullet, self).__init__(handler)
-      self.x = 300
-      self.y = 300
-      self.hitbox = entity.Hitbox(self.x, self.y, 5, 5)
-      self.angle = math.radians(1)
-      self.speed = 2
-      self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
-      self.image.fill((0,0,255))
-
-    def collide(self, other):
-      print "Bullet collide!"
-
   def __init__(self, game, level):
     super(GameScreenHandler, self).__init__(game)
     self.inputHandler = inputHandler.InputHandler()
@@ -309,6 +250,7 @@ class GameScreenHandler(Handler):
     self.inputHandler.addPerFrameCallback(self._moveLeft, pygame.K_LEFT)
     self.inputHandler.addPerFrameCallback(self._moveUp, pygame.K_UP)
     self.inputHandler.addPerFrameCallback(self._moveDown, pygame.K_DOWN)
+    self.inputHandler.addPerFrameCallback(self._shootBullet, pygame.K_z)
 
     self.ui = GameScreenHandler.Ui(self.game)
 
@@ -319,11 +261,15 @@ class GameScreenHandler(Handler):
     (self.levelScripter, _) = level()
     self.levelScripter.setHandler(self)
 
-    self.player = GameScreenHandler.Player(self)
+    self.player = entity.Player(self)
     self.player.setX(50)
     self.player.setY(50)
     self.enemies = []
     self.bullets = []
+    self.playerBullets = []
+
+    # Hack:
+    self.cooldown = 0
 
     self.focused = False
 
@@ -344,6 +290,8 @@ class GameScreenHandler(Handler):
       self.game.screen.blit(enemy.image, (enemy.hitbox.x, enemy.hitbox.y))
     for bullet in self.bullets:
       self.game.screen.blit(bullet.image, (bullet.hitbox.x, bullet.hitbox.y))
+    for playerBullet in self.playerBullets:
+       self.game.screen.blit(playerBullet.image, (playerBullet.hitbox.x, playerBullet.hitbox.y))
 
     self._drawText()
 
@@ -355,10 +303,13 @@ class GameScreenHandler(Handler):
       enemy.update()
     for bullet in self.bullets:
       bullet.update()
+    for playerBullet in self.playerBullets:
+      playerBullet.update()
 
     # Clean up the dead
     self.enemies = [enemy for enemy in self.enemies if not enemy.dead]
     self.bullets = [bullets for bullets in self.bullets if not bullets.dead]
+    self.playerBullets = [playerBullets for playerBullets in self.playerBullets if not playerBullets.dead]
 
   def _updateUi(self):
     self.ui.update()
@@ -380,8 +331,16 @@ class GameScreenHandler(Handler):
         self.player.collide(bullet)
 
     # Check bullet + enemy collisions
+    # This is going to be expensive and should be optimised, maybe using
+    # subgrids
+    for playerBullet in self.playerBullets:
+      for enemy in self.enemies:
+        if playerBullet.isCollide(enemy):
+          playerBullet.collide(enemy)
+          enemy.collide(playerBullet)
 
   # Input stuff
+  # TODO: These should probably be more like self.player.setXVel() etc
   def _handleInput(self):
     self.inputHandler.update()
     # Adjust velocities if diagonal movement (or not, this seems to suck)
@@ -415,6 +374,22 @@ class GameScreenHandler(Handler):
     else:
       self.player.xvel += 6
 
+  def _shootBullet(self):
+    # Shoot dah bullet!
+    # In reality, the player should have a script like enemies do
+    # and this function will just perform a frame of the script
+    if self.cooldown >= 5:
+      bullet = self.createPlayerBullet()
+      bullet.angle = math.pi / 2
+      bullet.speed = 10
+      bullet.hitbox.centerx = self.player.hitbox.centerx
+      bullet.hitbox.centery = self.player.hitbox.centery
+      bullet.x = bullet.hitbox.x
+      bullet.y = bullet.hitbox.y
+      self.cooldown = 0
+    self.cooldown += 1
+  # 'Clever' hack so this half-finished function doesn't look super dumb
+
   def _focus(self):
     self.focused = True
 
@@ -427,13 +402,18 @@ class GameScreenHandler(Handler):
     self.levelScripter.execute()
 
   def createEnemy(self):
-    enemy = GameScreenHandler.Enemy(self)
+    enemy = entity.Enemy(self)
     self.enemies.append(enemy)
     return enemy
 
   def createBullet(self):
-    bullet = GameScreenHandler.Bullet(self)
+    bullet = entity.Bullet(self)
     self.bullets.append(bullet)
+    return bullet
+
+  def createPlayerBullet(self):
+    bullet = entity.Bullet(self)
+    self.playerBullets.append(bullet)
     return bullet
 
   # Updates

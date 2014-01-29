@@ -1,4 +1,4 @@
-import math
+import math, random
 
 import pygame
 import scripting
@@ -24,13 +24,14 @@ class Asset(object):
     self.animations = animations
     self.sounds = sounds
     
-def level1():
+def level1Test():
   assets = []
   bulletScripter = scripting.EntityScripter()
   bulletScripter.addScript(bulletScripter.setSpeed(1))
   for i in range(600):
     speed = 1 + (20 * i / 100.0)
     bulletScripter.addScript(bulletScripter.setSpeed(speed))
+
   enemyScripter = scripting.EntityScripter()
   enemyScripter.addScript(enemyScripter.setSpeed(2))
   #for i in range(0, 360, 0.1):
@@ -46,6 +47,26 @@ def level1():
   for _ in range(180):
     scripter.addWait(2)
     scripter.addScript(scripter.createEnemy(None, enemyScripter))
-  #scripter.setLooping(True)
+
+  return (scripter, assets)
+
+def level1():
+  assets = []
+  bulletScripter = scripting.EntityScripter()
+  bulletScripter.addScript(bulletScripter.setSpeed(1))
+
+  enemyScripter = scripting.EntityScripter()
+  enemyScripter.addScript(enemyScripter.setSpeed(2))
+  for i in range(0, 60000):
+    if i % 10 == 0:
+      enemyScripter.addScript(enemyScripter.setDirection(random.uniform(0, math.pi * 2)),
+                              enemyScripter.shootAtPlayer(0, 2, bulletScripter))
+    else:
+      enemyScripter.addScript(enemyScripter.setDirection(random.uniform(0, math.pi * 2)))
+  enemyScripter.setLooping(True)
+  
+  scripter = scripting.Scripter()
+  scripter.addWait(2)
+  scripter.addScript(scripter.createEnemy(None, enemyScripter))
 
   return (scripter, assets)

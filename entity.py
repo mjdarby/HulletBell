@@ -22,8 +22,8 @@ class Entity(drawable.Drawable):
     self.dead = False # Remove from screen on next update?
     self.xvel = 0
     self.yvel = 0
-    self.angle = math.radians(315)
-    self.speed = 2
+    self.angle = 0
+    self.speed = 0
 
     # Bounds stuff
     self.boundsChecked = True # Call die() if out of bounds
@@ -83,3 +83,69 @@ class Entity(drawable.Drawable):
     self.hitbox.x = math.floor(self.x)
     # Move by Y
     self.hitbox.y = math.floor(self.y)
+
+class Player(Entity):
+  def __init__(self, handler):
+    super(Player, self).__init__(handler)
+    self.x = 0
+    self.y = 0
+    self.hitbox = Hitbox(0, 0, 20, 20)
+    self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
+    self.image.fill((255,255,255))
+
+    # Players are more strictly bounded than other entities
+    self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
+
+  def _updateMovement(self):
+    # Move by X
+    self.x += self.xvel
+    self.hitbox.x = math.floor(self.x)
+    # Move by Y
+    self.y += self.yvel
+    self.hitbox.y = math.floor(self.y)
+
+    if not self.bounds.contains(self.hitbox):
+      # The hitbox has left the area! Put it back!
+      self.hitbox.clamp_ip(self.bounds)
+      (self.x, self.y) = (self.hitbox.x, self.hitbox.y)
+
+    # Reset velocity
+    self.xvel = 0
+    self.yvel = 0
+
+  def collide(self, other):
+    pass
+
+class Enemy(Entity):
+  def __init__(self, handler):
+    super(Enemy, self).__init__(handler)
+    self.x = 60
+    self.y = 60
+    self.hitbox = Hitbox(self.x, self.y, 20, 20)
+    self.angle = 0
+    self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
+    self.image.fill((0,255,0))
+
+  def collide(self, other):
+    print "Enemy collide!"
+
+class Bullet(Entity):
+  def __init__(self, handler):
+    super(Bullet, self).__init__(handler)
+    self.x = 300
+    self.y = 300
+    self.hitbox = Hitbox(self.x, self.y, 5, 5)
+    self.angle = math.radians(1)
+    self.speed = 2
+    self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
+    self.image.fill((0,0,255))
+
+  def collide(self, other):
+    print "Bullet collide!"
+
+class Boss(Enemy):
+  def __init__(self, handler):
+    super(Boss, self).__init__(handler)
+
+  def collide(self, other):
+    "Man, don't touch the boss!"

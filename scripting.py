@@ -9,7 +9,7 @@ class Script(object):
     pass
 
 class SetX(Script):
-  def __init__(self, entity, x):
+  def __init__(self, x):
     super(SetX, self).__init__()
     self.x = x
 
@@ -123,7 +123,7 @@ class LevelScript(object):
     pass
 
 class CreateEnemy(LevelScript):
-  def __init__(self, handler, enemyScripter = None): # TODO: Take position and script
+  def __init__(self, handler, enemyScripter = None): # TODO: Take position
     super(CreateEnemy, self).__init__(handler)
     # TODO: Populate these
     self.enemyType = None
@@ -133,14 +133,38 @@ class CreateEnemy(LevelScript):
     # Create an enemy of type enemyType
     # Give him script enemyScripter
     enemy = handler.createEnemy()
+
+    # TODO should take passed in arguments
     enemy.setY(200)
     enemy.setX(300)
-    enemy.speed = 0
+
     if self.enemyScripter is not None:
       # Copy in the passed script because it may be used by other entities
       # Sharing a script = BAD!
       enemy.scripter = copy.copy(self.enemyScripter)
       enemy.scripter.setEntity(enemy)
+
+class CreateBoss(LevelScript):
+  def __init__(self, handler, bossScripter = None): # TODO: Take position
+    super(CreateBoss, self).__init__(handler)
+    # TODO: Populate these
+    self.enemyType = None
+    self.bossScripter = bossScripter
+
+  def execute(self, handler):
+    # Create an boss of type bossType
+    # Give him script bossScripter
+    boss = handler.createBoss()
+
+    # TODO should take passed in arguments
+    boss.setY(200)
+    boss.setX(300)
+
+    if self.bossScripter is not None:
+      # Copy in the passed script because it may be used by other entities
+      # Sharing a script = BAD!
+      boss.scripter = copy.copy(self.bossScripter)
+      boss.scripter.setEntity(boss)
 
 class Scripter(object):
   """Builds scripts for level"""
@@ -178,8 +202,14 @@ class Scripter(object):
     """Add scripts to be parsed on frame (len(handler.scripts))"""
     self.script.append(scripts)
 
+  # TODO: Both bosses and enemies may have master/slave enemies or boss-parts
+  # Right now, they're single entities
+
   def createEnemy(self, enemyType, enemyScripter):
     return CreateEnemy(self.handler, enemyScripter)
+
+  def createBoss(self, bossType, bossScripter):
+    return CreateBoss(self.handler, bossScripter)
 
 
 class EntityScripter(object):

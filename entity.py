@@ -16,37 +16,63 @@ class Bounds(pygame.Rect):
 class Entity(drawable.Drawable):
   """Base class for all entities that interact with each other via collisions"""
   def __init__(self, handler):
-    super(Entity, self).__init__(60, 60)
-    self.hitbox = None # TODO this should be a hitbox
-    self.collidable = True # Entity can call 'collide' on others
+    super(Entity, self).__init__(0, 0)
+
+    # Set by script
+    # NOTE: Also set in derived class inits as part of development and testing
+    # Example: self.hp is set in Enemy and Boss, but won't be eventually
+    self.x = 0
+    self.y = 0
+    self.angle = 0
+    self.speed = 0
+    self.hp = 1
+    self.collisionDamage = 1 # TODO: Make this modifiable by script
+
+    # Calculated by game logic
+    self.hitbox = Hitbox(self.x, self.y, 5, 5)
+    self.collidable = True # Entity can call 'collide' on others, also settable by script
     self.dead = False # Remove from screen on next update?
     self.xvel = 0
     self.yvel = 0
-    self.angle = 0
-    self.speed = 0
 
     # Bounds stuff
     self.boundsChecked = True # Call die() if out of bounds
     self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
     self.bounds.inflate_ip(50, 50) # Default bounds for non-players
+
+    # Reference to parent handler allowing for some crazy script stuff
     self.handler = handler
+
+    # Scripting stuff
     self.scripter = scripting.EntityScripter()
     self.scripter.setEntity(self)
+
+    # Graphical stuff
+    # TODO: Do the animation stuff and remove this approach
+    self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
+    self.image.fill((0,255,0))
+
 
   def update(self):
     self._runScript()
     self._updateMovement()
     self._special()
 
-    # Kill on OOB
-    if self.boundsChecked and not self.bounds.contains(self.hitbox):
+    # Kill on OOB or no health
+    if (self.boundsChecked and not self.bounds.contains(self.hitbox)) or self.hp <= 0:
       self.die()
 
   def isCollide(self, other):
-    return self.collidable and other.hitbox.colliderect(self.hitbox)
+    return self.collidable and other.collidable and other.hitbox.colliderect(self.hitbox)
 
   def collide(self, other):
-    print "Collided!"
+    # TODO: This needs to be more generic, so you don't just necessarily
+    # deal damage. Also, takeDamage? At least we're not directly
+    # modifying variables, geez.
+    other.takeDamage(self.collisionDamage)
+
+  def takeDamage(self, damage):
+    self.hp -= damage
 
   def setScript(self, script):
     self.scripter = script
@@ -61,7 +87,8 @@ class Entity(drawable.Drawable):
 
   def die(self):
     # Death logic, usually playing an animation and removing self from screen
-    # TODO: Animation!
+    # TODO: Animation before setting self.dead! Also stop the script from 
+    # continuing if necessary
     self.collidable = False
     self.dead = True
 
@@ -91,7 +118,9 @@ class Player(Entity):
     self.y = 0
     self.hitbox = Hitbox(0, 0, 20, 20)
     self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
-    self.image.fill((255,255,255))
+    self.image.fill((0,255,0))
+
+    self.collisionDamage = 0
 
     # Players are more strictly bounded than other entities
     self.bounds = Bounds(GAMEOFFSET, GAMEOFFSET, GAMEXWIDTH, GAMEYWIDTH)
@@ -113,9 +142,6 @@ class Player(Entity):
     self.xvel = 0
     self.yvel = 0
 
-  def collide(self, other):
-    pass
-
 class Enemy(Entity):
   def __init__(self, handler):
     super(Enemy, self).__init__(handler)
@@ -124,10 +150,9 @@ class Enemy(Entity):
     self.hitbox = Hitbox(self.x, self.y, 20, 20)
     self.angle = 0
     self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
-    self.image.fill((0,255,0))
+    self.image.fill((255,0,0))
 
-  def collide(self, other):
-    print "Enemy collide!"
+    self.hp = 4
 
 class Bullet(Entity):
   def __init__(self, handler):
@@ -138,14 +163,19 @@ class Bullet(Entity):
     self.angle = math.radians(1)
     self.speed = 2
     self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
-    self.image.fill((0,0,255))
+    self.image.fill((223,0,255))
 
   def collide(self, other):
-    print "Bullet collide!"
+    super(Bullet, self).collide(other)
+    # Bullets (always?) die on impact
+    # Usually they're be killed due to collision damage with enemy
+    # but the player may not do damage on collision.
+    self.die()
 
 class Boss(Enemy):
   def __init__(self, handler):
     super(Boss, self).__init__(handler)
+    self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
+    self.image.fill((225,255,0))
 
-  def collide(self, other):
-    "Man, don't touch the boss!"
+    self.hp = 50

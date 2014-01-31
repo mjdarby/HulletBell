@@ -225,12 +225,25 @@ class GameScreenHandler(Handler):
       self.fpsDisplay.setFontSize(24)
       self.fpsDisplay.setLeftAligned()
 
+      # Debug UI stuff
+      self.bossHp = TextElement(game.xRes * 3 // 4, 180, "Boss HP: ")
+      self.bossHp.setFontSize(24)
+      self.bossHp.setLeftAligned()
+
     def update(self):
       self.fpsDisplay.setText("FPS: " + str(self.game.clock.get_fps()))
+
+      # This if statement should not be tried at home
+      if self.game.handler.boss:
+        enemy = self.game.handler.boss
+        self.bossHp.setText("Boss HP: " + str(enemy.hp))
+      else:
+        self.bossHp.setText("")
 
     def draw(self, screen):
       screen.blit(self.background, (0,0))
       screen.blit(self.fpsDisplay.renderText, self.fpsDisplay.textPos)
+      screen.blit(self.bossHp.renderText, self.bossHp.textPos)
 
 # TODO: Finish the player stuff
 # TODO: Decide if we'll end up using pygame.Sprite as the base for drawable
@@ -268,6 +281,15 @@ class GameScreenHandler(Handler):
     self.bullets = []
     self.playerBullets = []
 
+    # Boss stuff
+    # Bosses can be made up of multiple enemies, each with their own HP bars
+    # It is also possible to have a 'master' boss enemy, that when destroyed
+    # will win the encounter regardless of the number of boss components left
+
+    # TODO: Implement all that stuff above, because right now it's just
+    # going to be a single entity like the player
+    self.boss = None
+
     # Hack:
     self.cooldown = 0
 
@@ -293,6 +315,10 @@ class GameScreenHandler(Handler):
     for playerBullet in self.playerBullets:
        self.game.screen.blit(playerBullet.image, (playerBullet.hitbox.x, playerBullet.hitbox.y))
 
+    # TODO: When bosses are better than just one entity, make this a loop too
+    if self.boss:
+      self.game.screen.blit(self.boss.image, (self.boss.hitbox.x, self.boss.hitbox.y))
+
     self._drawText()
 
   def _logic(self):
@@ -306,10 +332,18 @@ class GameScreenHandler(Handler):
     for playerBullet in self.playerBullets:
       playerBullet.update()
 
+    # TODO: When bosses are better than just one entity, make this a loop too
+    if self.boss:
+      self.boss.update()
+
     # Clean up the dead
     self.enemies = [enemy for enemy in self.enemies if not enemy.dead]
     self.bullets = [bullets for bullets in self.bullets if not bullets.dead]
     self.playerBullets = [playerBullets for playerBullets in self.playerBullets if not playerBullets.dead]
+
+    # Bosses should have a good die() method before declaring itself dead proper
+    if self.boss and self.boss.dead:
+      self.boss = None
 
   def _updateUi(self):
     self.ui.update()
@@ -338,6 +372,11 @@ class GameScreenHandler(Handler):
         if playerBullet.isCollide(enemy):
           playerBullet.collide(enemy)
           enemy.collide(playerBullet)
+      # TODO: When bosses are better than just one entity, make this a loop too
+      if self.boss:
+        if playerBullet.isCollide(self.boss):
+          self.boss.collide(playerBullet)
+          playerBullet.collide(self.boss)
 
   # Input stuff
   # TODO: These should probably be more like self.player.setXVel() etc
@@ -382,10 +421,16 @@ class GameScreenHandler(Handler):
       bullet = self.createPlayerBullet()
       bullet.angle = math.pi / 2
       bullet.speed = 10
+      bullet.hitbox = entity.Hitbox(bullet.x, bullet.y, 7, 7)
       bullet.hitbox.centerx = self.player.hitbox.centerx
       bullet.hitbox.centery = self.player.hitbox.centery
       bullet.x = bullet.hitbox.x
       bullet.y = bullet.hitbox.y
+
+      # This line highlights why we need the animation system
+      bullet.image = pygame.Surface((bullet.hitbox.w, bullet.hitbox.h))
+      bullet.image.fill((0,0,255))
+
       self.cooldown = 0
     self.cooldown += 1
   # 'Clever' hack so this half-finished function doesn't look super dumb
@@ -405,6 +450,10 @@ class GameScreenHandler(Handler):
     enemy = entity.Enemy(self)
     self.enemies.append(enemy)
     return enemy
+
+  def createBoss(self):
+    self.boss = entity.Boss(self)
+    return self.boss
 
   def createBullet(self):
     bullet = entity.Bullet(self)

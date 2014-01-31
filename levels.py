@@ -64,9 +64,14 @@ def level1():
     else:
       enemyScripter.addScript(enemyScripter.setDirection(random.uniform(0, math.pi * 2)))
   enemyScripter.setLooping(True)
+
+  bossScripter = scripting.EntityScripter()
+  bossScripter.addScript(bossScripter.setSpeed(2), bossScripter.setX(60), bossScripter.setY(60))
   
   scripter = scripting.Scripter()
   scripter.addWait(2)
   scripter.addScript(scripter.createEnemy(None, enemyScripter))
+  scripter.addWait(10)
+  scripter.addScript(scripter.createBoss(None, bossScripter))
 
   return (scripter, assets)

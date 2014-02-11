@@ -177,5 +177,69 @@ class Boss(Enemy):
     super(Boss, self).__init__(handler)
     self.image = pygame.Surface((self.hitbox.w, self.hitbox.h))
     self.image.fill((225,255,0))
+    self.boundsChecked = False
+    self.hp = 0
+    self.scriptHp = None
 
-    self.hp = 50
+    # While technically any entity will be able to have any number
+    # of scripters (by virtue of chaining them, eventually),
+    # we can simplify things for bosses because they will regularly have to
+    # change scripts at certain HP values and times.
+    self.scripters = []
+    # If a script should stop running at a certain HP value, set a positive value
+    self.scriptHps = []
+    # If a script should time out after a certain amount of time, set a positive value
+    self.scriptTimeouts = []
+
+    # Timing and script counters
+    self.currentFrame = 0
+    self.currentScripter = 0
+    self.totalScripters = 0
+
+  def takeDamage(self, damage):
+    if self.hp is not None:
+      self.hp -= damage
+    if self.scriptHp is not None:
+      self.scriptHp -= damage
+
+  def checkScripterChange(self):
+    if self.scripters:
+      timer = self.scriptTimeouts[self.currentScripter]
+      hp = self.scriptHp
+      if (timer is not None and self.currentFrame > timer) \
+        or (hp is not None and hp <= 0):
+        try:
+          self.currentScripter += 1
+          self.scripter = self.scripters[self.currentScripter]
+          self.scriptHp = self.scriptHps[self.currentScripter]
+        except IndexError:
+          self.die() # Kill this boss if he has nothing left
+
+  def addScripter(self, bossAttack):
+    scripter = bossAttack.scripter
+    scripter.setEntity(self)
+    self.scripters.append(scripter)
+    self.totalScripters += 1
+    self.scriptHps.append(bossAttack.hp)
+    self.scriptTimeouts.append(bossAttack.timeout)
+
+    # If the boss has a large health bar rather than several small ones
+    # or if it would just be nice to have the total health available
+    if self.hp is not None:
+      self.hp += bossAttack.hp
+
+    # If this is the first script, set up the initial variables
+    if self.totalScripters == 1:
+      self.scripter = scripter
+      self.scriptHp = bossAttack.hp
+
+  def update(self):
+    self._runScript()
+    self._updateMovement()
+    self._special()
+
+    if self.hp and self.hp <= 0:
+      self.die()
+
+    self.checkScripterChange()
+    self.currentFrame += 1

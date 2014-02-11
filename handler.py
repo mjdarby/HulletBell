@@ -230,6 +230,10 @@ class GameScreenHandler(Handler):
       self.bossHp.setFontSize(24)
       self.bossHp.setLeftAligned()
 
+      self.bossScriptHp = TextElement(game.xRes * 3 // 4, 200, "Script HP: ")
+      self.bossScriptHp.setFontSize(24)
+      self.bossScriptHp.setLeftAligned()
+
     def update(self):
       self.fpsDisplay.setText("FPS: " + str(self.game.clock.get_fps()))
 
@@ -237,13 +241,16 @@ class GameScreenHandler(Handler):
       if self.game.handler.boss:
         enemy = self.game.handler.boss
         self.bossHp.setText("Boss HP: " + str(enemy.hp))
+        self.bossScriptHp.setText("Script HP: " + str(enemy.scriptHp))
       else:
         self.bossHp.setText("")
+        self.bossScriptHp.setText("")
 
     def draw(self, screen):
       screen.blit(self.background, (0,0))
       screen.blit(self.fpsDisplay.renderText, self.fpsDisplay.textPos)
       screen.blit(self.bossHp.renderText, self.bossHp.textPos)
+      screen.blit(self.bossScriptHp.renderText, self.bossScriptHp.textPos)
 
 # TODO: Finish the player stuff
 # TODO: Decide if we'll end up using pygame.Sprite as the base for drawable
@@ -310,14 +317,13 @@ class GameScreenHandler(Handler):
 
     for enemy in self.enemies:
       self.game.screen.blit(enemy.image, (enemy.hitbox.x, enemy.hitbox.y))
+    # TODO: When bosses are better than just one entity, make this a loop too
+    if self.boss:
+      self.game.screen.blit(self.boss.image, (self.boss.hitbox.x, self.boss.hitbox.y))
     for bullet in self.bullets:
       self.game.screen.blit(bullet.image, (bullet.hitbox.x, bullet.hitbox.y))
     for playerBullet in self.playerBullets:
        self.game.screen.blit(playerBullet.image, (playerBullet.hitbox.x, playerBullet.hitbox.y))
-
-    # TODO: When bosses are better than just one entity, make this a loop too
-    if self.boss:
-      self.game.screen.blit(self.boss.image, (self.boss.hitbox.x, self.boss.hitbox.y))
 
     self._drawText()
 
